@@ -1,0 +1,8 @@
+bankdb
+
+.DS_Store
+
+*.o
+
+.vscode/
+ 
