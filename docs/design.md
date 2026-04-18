@@ -1,86 +1,145 @@
-# BankDB Design Document
+# CMSC 125 Lab 3 – BankDB
 
-## 1. Deadlock Strategy Choice
-
-We chose **Deadlock Prevention via Lock Ordering** as our strategy.
-
-In this approach, locks on accounts are always acquired in a consistent order based on account ID (i.e., the account with the smaller ID is locked first). This guarantees that no circular wait can occur among transactions.
-
-### Coffman Conditions for Deadlock
-1. Mutual exclusion  
-2. Hold and wait  
-3. No preemption  
-4. Circular wait  
-
-Lock ordering eliminates the **circular wait condition**, thereby preventing deadlock entirely.
-
-We chose this strategy because:
-- It is simpler and less error-prone than deadlock detection  
-- It avoids the overhead of maintaining a wait-for graph  
-- It guarantees deadlock-free execution without needing recovery mechanisms  
+## Design Notes (Week 1)
 
 ---
 
-## 2. Buffer Pool Integration
+## 1. Problem Analysis
 
-We plan to implement a fixed-size buffer pool using semaphores to simulate limited memory for account access.
+The goal of this project is to implement a **concurrent banking system** that processes multiple transactions on shared account data.
 
-### Strategy
-- Accounts will be **loaded into the buffer pool upon first access**  
-- Accounts will be **unloaded after the transaction completes**  
+### Concurrency Issues
+- Multiple threads may access the same account simultaneously
+- Can lead to **race conditions** and inconsistent balances
 
-### Behavior
-- If the buffer pool is full when a transaction attempts to load an account, the transaction will **block until a slot becomes available**  
-- Semaphores (`empty_slots` and `full_slots`) will be used to synchronize access to the buffer  
+### Synchronization Requirements
+- Operations must be **atomic**
+- Shared data must be protected
 
-### Justification
-- Loading on first access minimizes unnecessary memory usage  
-- Unloading at the end of a transaction allows other transactions to reuse buffer slots  
-- This approach balances performance and simplicity without requiring complex eviction policies  
+### Deadlock Risk
+- Transfers involving multiple accounts may cause **deadlocks**
 
----
-
-## 3. Reader-Writer Lock Performance
-
-We will compare the performance of:
-- `pthread_mutex_t` (exclusive locking)  
-- `pthread_rwlock_t` (reader-writer locking)  
-
-### Expected Outcome
-Reader-writer locks should perform better on **read-heavy workloads**, such as multiple concurrent `BALANCE` operations.
-
-### Reason
-- `pthread_rwlock_t` allows multiple threads to read the same account simultaneously  
-- `pthread_mutex_t` forces all operations (including reads) to execute one at a time  
-
-### Plan
-- Run the system using a read-heavy trace file  
-- Measure total execution time in ticks  
-- Compare results between mutex and rwlock implementations  
+### Resource Constraints
+- System simulates limited memory via a **buffer pool**
 
 ---
 
-## 4. Timer Thread Design
+## 2. Solution Architecture
 
-A separate timer thread will be used to simulate time progression via a global tick counter.
+### 2.1 Core Components
 
-### Purpose
-- To control when each transaction starts based on its `start_tick`  
-- To enable realistic concurrent execution  
+- **Accounts Module (`bank.c`)**
+  - Stores account data and operations
 
-### Why not sequential execution?
-Without a timer thread:
-- Transactions would execute immediately in order  
-- There would be no overlap between transactions  
-- Concurrency issues (race conditions, deadlocks) would not be observable  
+- **Transaction Module (`transaction.h`)**
+  - Defines transaction structure and operations
 
-### How it enables concurrency
-- The timer thread increments `global_tick` at fixed intervals  
-- Transactions wait until their scheduled `start_tick`  
-- Multiple transactions may start at the same tick, enabling parallel execution  
+- **Parser Module (`parser.c`)**
+  - Reads `accounts.txt` and `trace.txt`
+
+- **Main Controller (`main.c`)**
+  - Coordinates execution
 
 ---
 
-## Summary
+### 2.2 Concurrency Design
 
-This design ensures safe and correct concurrent execution in a multi-threaded banking system. By using lock ordering, reader-writer locks, a buffer pool, and a timer thread, the system can handle concurrent transactions efficiently while avoiding race conditions and deadlocks.
+- Each transaction will run as a **thread (`pthread`)**
+- Execution will be controlled using a **global timer**
+
+---
+
+### 2.3 Deadlock Handling
+
+We use **Deadlock Prevention via Lock Ordering**:
+- Always lock accounts in ascending order of ID
+- Eliminates circular wait → prevents deadlock
+
+---
+
+### 2.4 Buffer Pool
+
+- Fixed-size buffer simulating limited memory
+- Accounts loaded on access
+- Transactions wait if buffer is full
+- Controlled using semaphores
+
+---
+
+### 2.5 Synchronization Strategy (rwlock vs mutex)
+
+We consider two synchronization mechanisms:
+
+- **pthread_mutex_t (mutex)**
+  - Simpler locking mechanism
+  - Only one thread can access a resource at a time
+
+- **pthread_rwlock_t (reader-writer lock)**
+  - Allows multiple concurrent readers
+  - Ensures exclusive access for writers
+
+Since banking workloads may involve frequent balance checks (read-heavy operations), using **reader-writer locks** can improve performance by allowing multiple threads to read simultaneously while still maintaining correctness during write operations.
+
+### Planned Benchmark Methodology
+
+To evaluate the performance difference between pthread_mutex_t and pthread_rwlock_t, we will:
+
+- Run identical workloads using both locking strategies  
+- Use multiple trace files simulating:
+  - read-heavy workloads  
+  - write-heavy workloads  
+  - mixed workloads  
+- Measure:
+  - total execution time  
+  - average transaction wait time (wait_ticks)  
+- Perform multiple runs and compute averages  
+
+This will help determine whether reader-writer locks provide measurable performance benefits over mutexes under different contention scenarios.
+
+---
+
+### 2.6 Timer Thread
+
+- Maintains `global_tick`
+- Controls transaction start times
+- Enables concurrent execution
+
+---
+
+## 3. Estimated Implementation Timeline
+
+### Week 1: Core Setup & Basic Execution
+- Set up project structure and Makefile  
+- Implement data structures (Account, Transaction, Operation)  
+- Implement parsing for `accounts.txt` and `trace.txt`  
+- Begin basic single-threaded execution  
+- Verify correctness of operations  
+
+### Week 2: Concurrency Implementation
+- Implement multi-threading using `pthread`  
+- Add synchronization (mutex and rwlocks)  
+- Implement timer thread  
+- Ensure correct concurrent execution  
+
+### Week 3: Advanced Features & Optimization
+- Implement deadlock prevention (lock ordering)  
+- Add buffer pool with semaphores  
+- Perform testing and debugging  
+- Measure performance and optimize  
+
+### Week 4: Finalization and Evaluation
+- Perform comprehensive testing of all features  
+- Debug and fix remaining issues  
+- Evaluate system performance under different workloads  
+- Refine code structure and documentation  
+- Prepare final submission and presentation  
+
+---
+
+## 4. Summary
+
+The system is designed to safely handle concurrent transactions using:
+- Lock ordering for deadlock prevention  
+- Reader-writer locks to optimize performance under read-heavy workloads  
+- A buffer pool for controlled resource usage  
+- A timer thread for realistic concurrency  
