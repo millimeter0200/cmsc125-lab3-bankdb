@@ -1,30 +1,36 @@
 #ifndef TRANSACTION_H
 #define TRANSACTION_H
 
+#include <pthread.h>
+
 #define MAX_OPS 256
 #define MAX_TRANSACTIONS 100
 
-typedef enum {
+typedef enum
+{
     OP_DEPOSIT,
     OP_WITHDRAW,
     OP_TRANSFER,
     OP_BALANCE
 } OpType;
 
-typedef struct {
+typedef struct
+{
     OpType type;
     int account_id;
-    int amount;
+    int amount_centavos;
     int target_account;
 } Operation;
 
-typedef enum {
+typedef enum
+{
     TX_RUNNING,
     TX_COMMITTED,
     TX_ABORTED
 } TxStatus;
 
-typedef struct {
+typedef struct
+{
     int tx_id;
     Operation ops[MAX_OPS];
     int num_ops;
@@ -35,6 +41,8 @@ typedef struct {
     int wait_ticks;
 
     TxStatus status;
+
+    pthread_t thread;
 } Transaction;
 
 #endif

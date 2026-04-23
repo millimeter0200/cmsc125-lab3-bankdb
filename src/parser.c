@@ -5,7 +5,8 @@
 int load_transactions(const char *filename, Transaction txs[], int max)
 {
     FILE *file = fopen(filename, "r");
-    if (!file) {
+    if (!file)
+    {
         perror("Error opening trace file");
         return -1;
     }
@@ -13,7 +14,8 @@ int load_transactions(const char *filename, Transaction txs[], int max)
     char op[20];
     int count = 0;
 
-    while (count < max) {
+    while (count < max)
+    {
         Transaction tx;
 
         if (fscanf(file, "T%d %d %s",
@@ -26,22 +28,26 @@ int load_transactions(const char *filename, Transaction txs[], int max)
 
         Operation *o = &tx.ops[0];
 
-        if (strcmp(op, "DEPOSIT") == 0) {
+        if (strcmp(op, "DEPOSIT") == 0)
+        {
             o->type = OP_DEPOSIT;
-            fscanf(file, "%d %d", &o->account_id, &o->amount);
+            fscanf(file, "%d %d", &o->account_id, &o->amount_centavos);
         }
-        else if (strcmp(op, "WITHDRAW") == 0) {
+        else if (strcmp(op, "WITHDRAW") == 0)
+        {
             o->type = OP_WITHDRAW;
-            fscanf(file, "%d %d", &o->account_id, &o->amount);
+            fscanf(file, "%d %d", &o->account_id, &o->amount_centavos);
         }
-        else if (strcmp(op, "TRANSFER") == 0) {
+        else if (strcmp(op, "TRANSFER") == 0)
+        {
             o->type = OP_TRANSFER;
             fscanf(file, "%d %d %d",
                    &o->account_id,
                    &o->target_account,
-                   &o->amount);
+                   &o->amount_centavos);
         }
-        else if (strcmp(op, "BALANCE") == 0) {
+        else if (strcmp(op, "BALANCE") == 0)
+        {
             o->type = OP_BALANCE;
             fscanf(file, "%d", &o->account_id);
         }

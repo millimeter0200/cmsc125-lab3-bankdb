@@ -1,9 +1,9 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c99 -O2 -pthread -D_XOPEN_SOURCE=700 -Iinclude
 
-DEBUG_FLAGS = -Wall -Wextra -std=c99 -g -fsanitize=thread -pthread -D_XOPEN_SOURCE=700 -Iinclude
+CFLAGS = -Wall -Wextra -std=c99 -O2 -pthread -Iinclude
+DEBUG_FLAGS = -Wall -Wextra -std=c99 -g -fsanitize=thread -pthread -Iinclude
 
-SRC = src/main.c src/parser.c src/bank.c
+SRC = src/main.c src/parser.c src/bank.c src/timer.c
 OUT = bankdb
 
 all:
