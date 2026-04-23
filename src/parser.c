@@ -11,45 +11,71 @@ int load_transactions(const char *filename, Transaction txs[], int max)
         return -1;
     }
 
-    char op[20];
+    char line[256];
     int count = 0;
 
-    while (count < max)
+    while (fgets(line, sizeof(line), file) && count < max)
     {
-        Transaction tx;
+        // skip comments and empty lines
+        if (line[0] == '#' || line[0] == '\n')
+            continue;
 
-        if (fscanf(file, "T%d %d %s",
+        Transaction tx;
+        memset(&tx, 0, sizeof(Transaction));
+
+        char op[20];
+
+        // parse header
+        if (sscanf(line, "T%d %d %s",
                    &tx.tx_id,
                    &tx.start_tick,
                    op) != 3)
-            break;
+            continue;
 
-        tx.num_ops = 1;
+        tx.num_ops = 0;
 
-        Operation *o = &tx.ops[0];
+        // pointer to first operation
+        Operation *o = &tx.ops[tx.num_ops];
 
         if (strcmp(op, "DEPOSIT") == 0)
         {
             o->type = OP_DEPOSIT;
-            fscanf(file, "%d %d", &o->account_id, &o->amount_centavos);
+            sscanf(line, "T%d %d %*s %d %d",
+                   &tx.tx_id,
+                   &tx.start_tick,
+                   &o->account_id,
+                   &o->amount_centavos);
+            tx.num_ops++;
         }
         else if (strcmp(op, "WITHDRAW") == 0)
         {
             o->type = OP_WITHDRAW;
-            fscanf(file, "%d %d", &o->account_id, &o->amount_centavos);
+            sscanf(line, "T%d %d %*s %d %d",
+                   &tx.tx_id,
+                   &tx.start_tick,
+                   &o->account_id,
+                   &o->amount_centavos);
+            tx.num_ops++;
         }
         else if (strcmp(op, "TRANSFER") == 0)
         {
             o->type = OP_TRANSFER;
-            fscanf(file, "%d %d %d",
+            sscanf(line, "T%d %d %*s %d %d %d",
+                   &tx.tx_id,
+                   &tx.start_tick,
                    &o->account_id,
                    &o->target_account,
                    &o->amount_centavos);
+            tx.num_ops++;
         }
         else if (strcmp(op, "BALANCE") == 0)
         {
             o->type = OP_BALANCE;
-            fscanf(file, "%d", &o->account_id);
+            sscanf(line, "T%d %d %*s %d",
+                   &tx.tx_id,
+                   &tx.start_tick,
+                   &o->account_id);
+            tx.num_ops++;
         }
 
         txs[count++] = tx;

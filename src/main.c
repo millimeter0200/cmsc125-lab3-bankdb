@@ -19,7 +19,6 @@ void *execute_transaction(void *arg)
     tx->actual_start = get_global_tick();
     tx->status = TX_RUNNING;
 
-    // print execution start
     printf("Executing TX %d at tick %d\n", tx->tx_id, tx->actual_start);
 
     for (int i = 0; i < tx->num_ops; i++)
@@ -33,6 +32,27 @@ void *execute_transaction(void *arg)
                op->account_id,
                op->amount_centavos,
                op->target_account);
+
+        switch (op->type)
+        {
+        case OP_DEPOSIT:
+            deposit(op->account_id, op->amount_centavos);
+            break;
+
+        case OP_WITHDRAW:
+            withdraw(op->account_id, op->amount_centavos);
+            break;
+
+        case OP_TRANSFER:
+            transfer(op->account_id, op->target_account, op->amount_centavos);
+            break;
+
+        case OP_BALANCE:
+            printf("Balance of %d = %d\n",
+                   op->account_id,
+                   get_balance(op->account_id));
+            break;
+        }
     }
 
     tx->actual_end = get_global_tick();
@@ -68,7 +88,11 @@ int main(int argc, char *argv[])
     // create thread per transaction
     for (int i = 0; i < n; i++)
     {
-        pthread_create(&txs[i].thread, NULL, execute_transaction, &txs[i]);
+        if (pthread_create(&txs[i].thread, NULL, execute_transaction, &txs[i]) != 0)
+        {
+            perror("Failed to create thread");
+            return 1;
+        }
     }
 
     // wait for all threads
@@ -77,6 +101,7 @@ int main(int argc, char *argv[])
         pthread_join(txs[i].thread, NULL);
     }
 
+    printf("\nFinal account state:\n");
     print_accounts();
 
     return 0;
