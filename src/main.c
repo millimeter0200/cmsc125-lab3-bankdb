@@ -8,58 +8,7 @@
 
 #define MAX_TRANSACTIONS 100
 
-// thread function
-void *execute_transaction(void *arg)
-{
-    Transaction *tx = (Transaction *)arg;
-
-    // wait until scheduled start
-    wait_until_tick(tx->start_tick);
-
-    tx->actual_start = get_global_tick();
-    tx->status = TX_RUNNING;
-
-    printf("Executing TX %d at tick %d\n", tx->tx_id, tx->actual_start);
-
-    for (int i = 0; i < tx->num_ops; i++)
-    {
-        Operation *op = &tx->ops[i];
-
-        printf("TX %d - Op %d: type=%d, acc=%d, amt=%d, target=%d\n",
-               tx->tx_id,
-               i,
-               op->type,
-               op->account_id,
-               op->amount_centavos,
-               op->target_account);
-
-        switch (op->type)
-        {
-        case OP_DEPOSIT:
-            deposit(op->account_id, op->amount_centavos);
-            break;
-
-        case OP_WITHDRAW:
-            withdraw(op->account_id, op->amount_centavos);
-            break;
-
-        case OP_TRANSFER:
-            transfer(op->account_id, op->target_account, op->amount_centavos);
-            break;
-
-        case OP_BALANCE:
-            printf("Balance of %d = %d\n",
-                   op->account_id,
-                   get_balance(op->account_id));
-            break;
-        }
-    }
-
-    tx->actual_end = get_global_tick();
-    tx->status = TX_COMMITTED;
-
-    return NULL;
-}
+//moved thread function to transaction.c
 
 int main(int argc, char *argv[])
 {
