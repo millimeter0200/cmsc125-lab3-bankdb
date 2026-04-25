@@ -5,9 +5,6 @@
 // start timer thread
 void start_timer();
 
-// stop timer thread
-void stop_timer();
-
 // get current tick
 int get_global_tick();
 

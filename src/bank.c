@@ -57,18 +57,18 @@ static Account *find_account(int id)
     return NULL;
 }
 
-void deposit(int account_id, int amount)
+void deposit(int account_id, int amount_centavos)
 {
     Account *acc = find_account(account_id);
     if (!acc)
         return;
 
     pthread_rwlock_wrlock(&acc->lock);
-    acc->balance_centavos += amount;
+    acc->balance_centavos += amount_centavos;
     pthread_rwlock_unlock(&acc->lock);
 }
 
-int withdraw(int account_id, int amount)
+int withdraw(int account_id, int amount_centavos)
 {
     Account *acc = find_account(account_id);
     if (!acc)
@@ -76,18 +76,18 @@ int withdraw(int account_id, int amount)
 
     pthread_rwlock_wrlock(&acc->lock);
 
-    if (acc->balance_centavos < amount)
+    if (acc->balance_centavos < amount_centavos)
     {
         pthread_rwlock_unlock(&acc->lock);
         return -1;
     }
 
-    acc->balance_centavos -= amount;
+    acc->balance_centavos -= amount_centavos;
     pthread_rwlock_unlock(&acc->lock);
     return 0;
 }
 
-int transfer(int from, int to, int amount)
+int transfer(int from, int to, int amount_centavos)
 {
     Account *a = find_account(from);
     Account *b = find_account(to);
@@ -101,15 +101,15 @@ int transfer(int from, int to, int amount)
     pthread_rwlock_wrlock(&first->lock);
     pthread_rwlock_wrlock(&second->lock);
 
-    if (a->balance_centavos < amount)
+    if (a->balance_centavos < amount_centavos)
     {
         pthread_rwlock_unlock(&second->lock);
         pthread_rwlock_unlock(&first->lock);
         return -1;
     }
 
-    a->balance_centavos -= amount;
-    b->balance_centavos += amount;
+    a->balance_centavos -= amount_centavos;
+    b->balance_centavos += amount_centavos;
 
     pthread_rwlock_unlock(&second->lock);
     pthread_rwlock_unlock(&first->lock);
