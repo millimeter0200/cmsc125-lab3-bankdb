@@ -30,8 +30,6 @@ int load_accounts(const char *filename)
 
     bank.num_accounts = count;
 
-    pthread_mutex_init(&bank.bank_lock, NULL);
-
     fclose(file);
     return count;
 }
@@ -59,6 +57,9 @@ static Account *find_account(int id)
 
 void deposit(int account_id, int amount_centavos)
 {
+    if (amount_centavos < 0)
+        return;
+
     Account *acc = find_account(account_id);
     if (!acc)
         return;
@@ -70,6 +71,9 @@ void deposit(int account_id, int amount_centavos)
 
 int withdraw(int account_id, int amount_centavos)
 {
+    if (amount_centavos < 0)
+        return -1;
+
     Account *acc = find_account(account_id);
     if (!acc)
         return -1;
@@ -89,12 +93,19 @@ int withdraw(int account_id, int amount_centavos)
 
 int transfer(int from, int to, int amount_centavos)
 {
+    if (amount_centavos < 0)
+        return -1;
+
+    if (from == to)
+        return 0;
+
     Account *a = find_account(from);
     Account *b = find_account(to);
 
     if (!a || !b)
         return -1;
 
+    // enforce consistent lock order to avoid deadlock
     Account *first = (a->account_id < b->account_id) ? a : b;
     Account *second = (a->account_id < b->account_id) ? b : a;
 

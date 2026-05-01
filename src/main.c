@@ -8,8 +8,6 @@
 
 #define MAX_TRANSACTIONS 100
 
-//moved thread function to transaction.c
-
 int main(int argc, char *argv[])
 {
     if (argc < 3)
@@ -29,6 +27,12 @@ int main(int argc, char *argv[])
     if (n < 0)
         return 1;
 
+    if (n == 0)
+    {
+        printf("Loaded 0 transactions\n");
+        return 0;
+    }
+
     printf("Loaded %d transactions\n", n);
 
     // start timer thread
@@ -40,15 +44,27 @@ int main(int argc, char *argv[])
         if (pthread_create(&txs[i].thread, NULL, execute_transaction, &txs[i]) != 0)
         {
             perror("Failed to create thread");
+            stop_timer(); // cleanup if thread creation fails
             return 1;
         }
     }
 
-    // wait for all threads
+    // wait for all transaction threads
     for (int i = 0; i < n; i++)
     {
         pthread_join(txs[i].thread, NULL);
     }
+
+    printf("\nTransaction summary:\n");
+    for (int i = 0; i < n; i++)
+    {
+        printf("TX %d -> %s\n",
+               txs[i].tx_id,
+               txs[i].status == TX_COMMITTED ? "COMMITTED" : "ABORTED");
+    }
+
+    // stop timer thread cleanly
+    stop_timer();
 
     printf("\nFinal account state:\n");
     print_accounts();
