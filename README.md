@@ -1,130 +1,149 @@
 # CMSC 125 Lab 3 – BankDB
 
-## Design Notes (Week 2)
+## Final Implementation & Design Overview
 
 ---
 
-## 1. Problem Analysis
+## 1. Problem Overview
 
-The goal of this project is to implement a **concurrent banking system** that processes multiple transactions on shared account data. These transactions may execute simultaneously, which introduces several core challenges:
+This project implements a **concurrent banking system** that processes multiple transactions on shared account data. Transactions may execute simultaneously, requiring proper synchronization to maintain correctness.
 
-### Concurrency Issues
-- Multiple threads may access the same account at the same time
-- This can lead to **race conditions** and inconsistent balances
-
-### Synchronization Requirements
-- Operations such as deposit, withdraw, and transfer must be **atomic**
-- Shared data must be protected using appropriate locking mechanisms
-
-### Deadlock Risk
-- Transactions involving multiple accounts (e.g., transfer) may cause **deadlocks**
-- Proper coordination is required to avoid circular waiting
-
-### Resource Constraints
-- The system simulates limited memory using a **buffer pool**
-- Transactions must wait when resources are unavailable
+### Key Challenges Addressed
+- **Race Conditions** – multiple threads accessing shared accounts  
+- **Synchronization** – ensuring atomic updates to balances  
+- **Deadlocks** – preventing circular waiting in transfers  
+- **Resource Constraints** – limiting concurrent access using a buffer pool  
+- **Scheduling** – executing transactions based on simulated time  
 
 ---
 
-## 2. Solution Architecture
-
-To address the challenges, the system is designed with the following components:
+## 2. System Architecture
 
 ### 2.1 Core Components
 
 - **Accounts Module (`bank.c`)**
-  - Stores account information (ID and balance)
-  - Handles account loading and basic operations
+  - Stores account data (ID and balance)
+  - Implements deposit, withdraw, transfer, and balance operations
+  - Uses reader-writer locks for safe concurrent access
 
-- **Transaction Module (`transaction.h`)**
-  - Defines transaction structure and operations
-  - Supports DEPOSIT, WITHDRAW, TRANSFER, and BALANCE
+- **Transaction Module (`transaction.c`)**
+  - Executes transactions in separate threads
+  - Handles operation flow, abort conditions, and execution timing
 
 - **Parser Module (`parser.c`)**
-  - Reads input files (`accounts.txt` and `trace.txt`)
-  - Converts them into usable data structures
+  - Parses input files into structured transactions
+  - Supports multi-operation transactions
+
+- **Timer Module (`timer.c`)**
+  - Maintains a global logical clock (`global_tick`)
+  - Synchronizes transaction start times
+
+- **Buffer Pool (`buffer_pool.c`)**
+  - Controls limited resource access using semaphores
 
 - **Main Controller (`main.c`)**
-  - Coordinates program execution
-  - Initializes data and triggers transaction processing
+  - Initializes system components
+  - Creates and joins transaction threads
+  - Handles CLI arguments and program flow
 
 ---
 
-### 2.2 Concurrency Design
+## 3. Concurrency Design
 
-The system will use **POSIX threads (`pthread`)** to simulate concurrent transaction execution.
-
-- Each transaction will be executed as a **separate thread**
-- Threads will run based on their assigned `start_tick`
-- Synchronization mechanisms will ensure correctness
-
----
-
-### 2.3 Deadlock Handling Strategy
-
-We use **Deadlock Prevention via Lock Ordering**.
-
-- Locks on accounts are acquired in a **fixed order (by account ID)**
-- The account with the smaller ID is always locked first
-- This eliminates the **circular wait condition**, preventing deadlocks
+- Each transaction is executed as a **separate thread**
+- Threads wait until their assigned `start_tick` using:
+  - `pthread_mutex`
+  - `pthread_cond_t`
+- Ensures transactions follow timing constraints while running concurrently
 
 ---
 
-### 2.4 Buffer Pool Design
+## 4. Timer-Based Scheduling
 
-A **fixed-size buffer pool** is implemented using semaphores. Accounts are loaded into the buffer before access and released after use. If the buffer is full, transactions block until space becomes available.
+A dedicated **timer thread** simulates system time:
 
-#### Behavior:
-- Accounts are loaded into the buffer upon first access
-- Accounts are released after the transaction completes
-- If the buffer is full, transactions must **wait**
-
-#### Synchronization:
-- Semaphores (`empty_slots`, `full_slots`) will control access
-- Ensures safe and coordinated use of buffer resources
-
----
-
-### 2.5 Synchronization Mechanisms
-
-To ensure correctness under concurrency:
-
-- **Mutex (`pthread_mutex_t`)**
-  - Provides exclusive access to shared data
-
-- **Reader-Writer Lock (`pthread_rwlock_t`)**
-  - Allows multiple concurrent reads
-  - Ensures exclusive access for writes
-
-Reader-writer locks are expected to perform better in **read-heavy workloads**.
-
----
-
-### 2.6 Timer Thread Design
-
-A **timer thread** will simulate system time using a global tick counter.
-
-#### Purpose:
-- Controls when each transaction starts
-- Enables overlapping execution of transactions
-
-#### Behavior:
 - Increments `global_tick` at fixed intervals
-- Transactions wait until their `start_tick` is reached
+- Uses condition variables to wake waiting threads
+- Transactions call `wait_until_tick()` before execution
 
-#### Importance:
-- Enables realistic concurrency
-- Allows observation of synchronization issues (e.g., race conditions)
+### Additional Behavior
+- Introduced **scheduling jitter** to simulate realistic thread delays
+- Prevents perfectly synchronized execution
+- Allows observation of **wait times and contention**
 
 ---
 
-## 3. Summary
+## 5. Synchronization Mechanisms
 
-The system is designed to safely handle concurrent transactions using:
-- Lock ordering for deadlock prevention
-- Reader-writer locks for efficient synchronization
-- A buffer pool for controlled resource usage
-- A timer thread to simulate real-time execution
+### Reader-Writer Locks (`pthread_rwlock_t`)
+- Multiple threads can read simultaneously
+- Write operations are exclusive
+- Used for account-level protection
 
-This design ensures **correctness, efficiency, and scalability** in a multi-threaded banking environment.
+### Mutex + Condition Variable
+- Protects access to `global_tick`
+- Enables efficient waiting (no busy waiting)
 
+---
+
+## 6. Deadlock Prevention
+
+Deadlocks are avoided using **lock ordering**:
+
+- Accounts are always locked in ascending order of account ID
+- Prevents circular wait conditions
+- Ensures safe transfer operations
+
+---
+
+## 7. Buffer Pool Design
+
+A **fixed-size buffer pool** limits concurrent access:
+
+- Implemented using semaphores
+- Transactions must acquire a slot before accessing accounts
+- If full, transactions block until a slot becomes available
+
+### Purpose
+- Simulates limited system resources
+- Introduces realistic contention
+
+---
+
+## 8. Transaction Execution Behavior
+
+Each transaction:
+
+1. Waits until its scheduled `start_tick`
+2. Records:
+   - Actual start time
+   - Wait time (`actual_start - start_tick`)
+3. Executes operations sequentially
+4. Aborts immediately if any operation fails
+5. Records completion time
+
+### Execution Features
+- Transactions run concurrently
+- Operations simulate execution time using delays
+- Wait times reflect scheduling and contention
+
+---
+
+## 9. Testing & Validation
+
+The system was tested using:
+
+```bash
+make test
+
+---
+
+## 10. Results and Conclusion
+
+- No race conditions observed  
+- No deadlocks  
+- Correct and consistent final balances across runs  
+- Transactions execute concurrently with observable overlap  
+- Non-zero wait times demonstrate realistic scheduling  
+
+Overall, the system successfully demonstrates a concurrent transaction processing environment with proper synchronization, deadlock prevention, and realistic timing behavior. The combination of timer-based scheduling, thread execution, and controlled resource access ensures both correctness and efficiency.
