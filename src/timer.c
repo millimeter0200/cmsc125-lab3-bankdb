@@ -3,10 +3,10 @@
 #include "timer.h"
 
 // shared tick
-static volatile int global_tick = 0;
+static int global_tick = 0;
 
 // control flag
-static volatile int timer_running = 1;
+static int timer_running = 0;
 
 // timer thread handle
 static pthread_t timer_tid;
@@ -15,20 +15,28 @@ static pthread_t timer_tid;
 static pthread_mutex_t tick_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t tick_cond = PTHREAD_COND_INITIALIZER;
 
-static int tick_duration = 100000; // default 100ms in microseconds
+static int tick_duration = 100000; // default 100ms (microseconds)
 
-// timer thread function
+// timer thread
 static void *timer_thread_func(void *arg)
 {
   (void)arg;
 
-  while (timer_running)
+  while (1)
   {
-    usleep(tick_duration); // wait for the specified tick duration
+    usleep(tick_duration);
 
     pthread_mutex_lock(&tick_lock);
+
+    if (!timer_running)
+    {
+      pthread_mutex_unlock(&tick_lock);
+      break;
+    }
+
     global_tick++;
     pthread_cond_broadcast(&tick_cond);
+
     pthread_mutex_unlock(&tick_lock);
   }
 
@@ -38,26 +46,29 @@ static void *timer_thread_func(void *arg)
 // start timer
 void start_timer(int tick_ms)
 {
-  timer_running = 1; 
-  tick_duration = tick_ms * 1000; //convert ms to microseconds
+  pthread_mutex_lock(&tick_lock);
+
+  global_tick = 0; // reset each run
+  timer_running = 1;
+  tick_duration = tick_ms * 1000;
+
+  pthread_mutex_unlock(&tick_lock);
+
   pthread_create(&timer_tid, NULL, timer_thread_func, NULL);
 }
 
 // stop timer
 void stop_timer()
 {
-  timer_running = 0;
-
-  // wake any waiting threads so they don't block forever
   pthread_mutex_lock(&tick_lock);
-  pthread_cond_broadcast(&tick_cond);
+  timer_running = 0;
+  pthread_cond_broadcast(&tick_cond); // wake sleepers
   pthread_mutex_unlock(&tick_lock);
 
-  // wait for timer thread to finish
   pthread_join(timer_tid, NULL);
 }
 
-// wait for specific tick
+// wait until tick
 void wait_until_tick(int target_tick)
 {
   pthread_mutex_lock(&tick_lock);
@@ -70,7 +81,7 @@ void wait_until_tick(int target_tick)
   pthread_mutex_unlock(&tick_lock);
 }
 
-// get current tick safely
+// get current tick
 int get_global_tick()
 {
   pthread_mutex_lock(&tick_lock);

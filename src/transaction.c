@@ -1,89 +1,107 @@
 #include <stdio.h>
-#include <unistd.h> // ADD THIS
+#include <unistd.h>
 #include "transaction.h"
 #include "bank.h"
 #include "timer.h"
 
-extern int verbose_flag; // from main.c
+extern int verbose_flag;
 
-// thread function
 void *execute_transaction(void *arg)
 {
     Transaction *tx = (Transaction *)arg;
 
-    // wait until scheduled start
+    // wait for scheduled time
     wait_until_tick(tx->start_tick);
+
+    // introduce stronger, less predictable jitter
+    int jitter = (tx->tx_id * 7) % 5; // spreads threads better
+    usleep(30000 * jitter);           // 0–12 ms
 
     tx->actual_start = get_global_tick();
     tx->wait_ticks = tx->actual_start - tx->start_tick;
     tx->status = TX_RUNNING;
 
-    if (verbose_flag) {
-        printf("Executing TX %d at tick %d\n", tx->tx_id, tx->actual_start);
+    if (verbose_flag)
+    {
+        printf("Executing TX %d at tick %d (scheduled=%d, wait=%d)\n",
+               tx->tx_id,
+               tx->actual_start,
+               tx->start_tick,
+               tx->wait_ticks);
     }
 
     for (int i = 0; i < tx->num_ops; i++)
     {
         Operation *op = &tx->ops[i];
-        int result = 0; // 0 = success, <0 = failure
+        int result = 0;
 
         switch (op->type)
         {
         case OP_DEPOSIT:
-            if (verbose_flag) {
+            if (verbose_flag)
                 printf("TX %d: Deposit %d to %d\n",
                        tx->tx_id, op->amount_centavos, op->account_id);
-            }
             deposit(op->account_id, op->amount_centavos);
             break;
 
         case OP_WITHDRAW:
-            if (verbose_flag) {
+            if (verbose_flag)
                 printf("TX %d: Withdraw %d from %d\n",
                        tx->tx_id, op->amount_centavos, op->account_id);
-            }
             result = withdraw(op->account_id, op->amount_centavos);
             break;
 
         case OP_TRANSFER:
-            result = transfer(op->account_id, op->target_account, op->amount_centavos);
+            if (verbose_flag)
+                printf("TX %d: Transfer %d from %d to %d\n",
+                       tx->tx_id,
+                       op->amount_centavos,
+                       op->account_id,
+                       op->target_account);
+            result = transfer(op->account_id,
+                              op->target_account,
+                              op->amount_centavos);
             break;
 
         case OP_BALANCE:
-            if (verbose_flag) {
-                printf("Balance of %d = %d\n",
-                       op->account_id,
-                       get_balance(op->account_id));
+            if (verbose_flag)
+            {
+                int bal = get_balance(op->account_id);
+                printf("TX %d: Balance of %d = %d\n",
+                       tx->tx_id, op->account_id, bal);
             }
+            break;
+
+        default:
+            if (verbose_flag)
+                printf("TX %d: Unknown operation\n", tx->tx_id);
             break;
         }
 
-        // abort if operation fails
+        // abort condition
         if (result < 0)
         {
             tx->status = TX_ABORTED;
             tx->actual_end = get_global_tick();
 
-            if (verbose_flag) {
+            if (verbose_flag)
                 printf("TX %d aborted at tick %d\n",
-                   tx->tx_id,
-                   tx->actual_end);
-            }
+                       tx->tx_id, tx->actual_end);
 
             return NULL;
         }
 
-        usleep(150000); // 150ms
+        // simulate operation time
+        usleep(120000 + (tx->tx_id % 3) * 20000);
+        // 120–160ms (less uniform)
     }
 
     tx->actual_end = get_global_tick();
     tx->status = TX_COMMITTED;
 
-    if (verbose_flag) {
+    if (verbose_flag)
         printf("TX %d committed at tick %d\n",
-           tx->tx_id,
-           tx->actual_end);
-        }
+               tx->tx_id, tx->actual_end);
 
     return NULL;
 }
