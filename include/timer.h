@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 // start timer thread
-void start_timer();
+void start_timer(int tick_ms);
 
 // get current tick
 int get_global_tick();

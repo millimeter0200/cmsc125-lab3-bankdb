@@ -1,11 +1,15 @@
 #include <stdio.h>
 #include <pthread.h>
 #include "bank.h"
+#include "buffer_pool.h"
+
+static BufferPool buffer_pool;
 
 Bank bank;
 
 int load_accounts(const char *filename)
 {
+    init_buffer_pool(&buffer_pool, 5);
     FILE *file = fopen(filename, "r");
     if (!file)
     {
@@ -57,37 +61,49 @@ static Account *find_account(int id)
 
 void deposit(int account_id, int amount_centavos)
 {
-    if (amount_centavos < 0)
-        return;
+    load_account(&buffer_pool);
 
     Account *acc = find_account(account_id);
-    if (!acc)
+    if (!acc) {
+        unload_account(&buffer_pool);
         return;
+    }
 
     pthread_rwlock_wrlock(&acc->lock);
     acc->balance_centavos += amount_centavos;
     pthread_rwlock_unlock(&acc->lock);
+
+    unload_account(&buffer_pool);
 }
+
 
 int withdraw(int account_id, int amount_centavos)
 {
     if (amount_centavos < 0)
         return -1;
 
+    load_account(&buffer_pool);
+
     Account *acc = find_account(account_id);
-    if (!acc)
+    if (!acc) {
+        unload_account(&buffer_pool);
         return -1;
+    }
 
     pthread_rwlock_wrlock(&acc->lock);
 
     if (acc->balance_centavos < amount_centavos)
     {
         pthread_rwlock_unlock(&acc->lock);
+        unload_account(&buffer_pool);  
         return -1;
     }
 
     acc->balance_centavos -= amount_centavos;
+
     pthread_rwlock_unlock(&acc->lock);
+    unload_account(&buffer_pool);
+
     return 0;
 }
 
@@ -96,16 +112,24 @@ int transfer(int from, int to, int amount_centavos)
     if (amount_centavos < 0)
         return -1;
 
-    if (from == to)
+    if (from == to){
+        load_account(&buffer_pool);
+        unload_account(&buffer_pool);
         return 0;
+    }
+
+    load_account(&buffer_pool);
+    load_account(&buffer_pool);
 
     Account *a = find_account(from);
     Account *b = find_account(to);
 
-    if (!a || !b)
+    if (!a || !b) {
+        unload_account(&buffer_pool);
+        unload_account(&buffer_pool);
         return -1;
+    }
 
-    // enforce consistent lock order to avoid deadlock
     Account *first = (a->account_id < b->account_id) ? a : b;
     Account *second = (a->account_id < b->account_id) ? b : a;
 
@@ -116,6 +140,10 @@ int transfer(int from, int to, int amount_centavos)
     {
         pthread_rwlock_unlock(&second->lock);
         pthread_rwlock_unlock(&first->lock);
+
+        unload_account(&buffer_pool);
+        unload_account(&buffer_pool);
+
         return -1;
     }
 
@@ -125,18 +153,27 @@ int transfer(int from, int to, int amount_centavos)
     pthread_rwlock_unlock(&second->lock);
     pthread_rwlock_unlock(&first->lock);
 
+    unload_account(&buffer_pool);
+    unload_account(&buffer_pool);
+
     return 0;
-}
+} //if buffer size is 1, transfer requires 2 accounts simultaneously, so it must support at least 2 slots
 
 int get_balance(int account_id)
 {
+    load_account(&buffer_pool);
+
     Account *acc = find_account(account_id);
-    if (!acc)
+    if (!acc){
+        unload_account(&buffer_pool);
         return -1;
+    }
 
     pthread_rwlock_rdlock(&acc->lock);
     int bal = acc->balance_centavos;
     pthread_rwlock_unlock(&acc->lock);
+
+    unload_account(&buffer_pool);
 
     return bal;
 }

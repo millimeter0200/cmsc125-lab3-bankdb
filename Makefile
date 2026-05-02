@@ -13,11 +13,11 @@ debug:
 	$(CC) $(DEBUG_FLAGS) $(SRC) -o $(OUT)
 
 test: all
-	./bankdb tests/accounts.txt tests/trace_simple.txt
-	./bankdb tests/accounts.txt tests/trace_readers.txt
-	./bankdb tests/accounts.txt tests/trace_deadlock.txt
-	./bankdb tests/accounts.txt tests/trace_abort.txt
-	./bankdb tests/accounts.txt tests/trace_buffer.txt
+	./bankdb --accounts tests/accounts.txt --trace tests/trace_simple.txt
+	./bankdb --accounts tests/accounts.txt --trace tests/trace_readers.txt
+	./bankdb --accounts tests/accounts.txt --trace tests/trace_deadlock.txt
+	./bankdb --accounts tests/accounts.txt --trace tests/trace_abort.txt
+	./bankdb tests --accounts tests/accounts.txt --trace tests/trace_buffer.txt
 
 clean:
 	rm -f $(OUT)

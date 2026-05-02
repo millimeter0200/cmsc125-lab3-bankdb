@@ -15,6 +15,8 @@ static pthread_t timer_tid;
 static pthread_mutex_t tick_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t tick_cond = PTHREAD_COND_INITIALIZER;
 
+static int tick_duration = 100000; // default 100ms in microseconds
+
 // timer thread function
 static void *timer_thread_func(void *arg)
 {
@@ -22,7 +24,7 @@ static void *timer_thread_func(void *arg)
 
   while (timer_running)
   {
-    usleep(10000); // 10ms per tick
+    usleep(tick_duration); // wait for the specified tick duration
 
     pthread_mutex_lock(&tick_lock);
     global_tick++;
@@ -34,9 +36,10 @@ static void *timer_thread_func(void *arg)
 }
 
 // start timer
-void start_timer()
+void start_timer(int tick_ms)
 {
-  timer_running = 1; // reset in case reused
+  timer_running = 1; 
+  tick_duration = tick_ms * 1000; //convert ms to microseconds
   pthread_create(&timer_tid, NULL, timer_thread_func, NULL);
 }
 
