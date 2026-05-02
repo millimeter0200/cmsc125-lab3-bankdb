@@ -1,9 +1,9 @@
 CC = gcc
 
-CFLAGS = -Wall -Wextra -std=c99 -O2 -pthread -Iinclude
+CFLAGS = -Wall -Wextra -Wno-deprecated-declarations -std=c99 -O2 -pthread -Iinclude
 DEBUG_FLAGS = -Wall -Wextra -std=c99 -g -fsanitize=thread -pthread -Iinclude
 
-SRC = src/main.c src/parser.c src/bank.c src/timer.c src/transaction.c
+SRC = src/main.c src/parser.c src/bank.c src/timer.c src/transaction.c src/buffer_pool.c
 OUT = bankdb
 
 all:
@@ -17,7 +17,7 @@ test: all
 	./bankdb --accounts tests/accounts.txt --trace tests/trace_readers.txt
 	./bankdb --accounts tests/accounts.txt --trace tests/trace_deadlock.txt
 	./bankdb --accounts tests/accounts.txt --trace tests/trace_abort.txt
-	./bankdb tests --accounts tests/accounts.txt --trace tests/trace_buffer.txt
+	./bankdb --accounts tests/accounts.txt --trace tests/trace_buffer.txt
 
 clean:
 	rm -f $(OUT)

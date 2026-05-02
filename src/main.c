@@ -15,10 +15,9 @@ int main(int argc, char *argv[])
 {
     const char *accounts_file = NULL;
     const char *trace_file = NULL;
-    int tick_ms = 100; //default
-    int deadlock_mode = 0;
+    int tick_ms = 100; // default
 
-    for (int i = 1; i < argc; i++)  //parse CLI arguments
+    for (int i = 1; i < argc; i++) // parse CLI arguments
     {
         if (strcmp(argv[i], "--accounts") == 0 && i + 1 < argc)
         {
@@ -35,10 +34,6 @@ int main(int argc, char *argv[])
         else if (strcmp(argv[i], "--verbose") == 0)
         {
             verbose_flag = 1;
-        }
-        else if (strcmp(argv[i], "--deadlock") == 0)
-        {
-            deadlock_mode = 1;
         }
         else
         {
@@ -96,11 +91,11 @@ int main(int argc, char *argv[])
     for (int i = 0; i < n; i++)
     {
         printf("TX %d -> %s (start=%d, end=%d, wait=%d)\n",
-                txs[i].tx_id,
-                txs[i].status == TX_COMMITTED ? "COMMITTED" : "ABORTED",
-                txs[i].actual_start,
-                txs[i].actual_end,
-                txs[i].wait_ticks);
+               txs[i].tx_id,
+               txs[i].status == TX_COMMITTED ? "COMMITTED" : "ABORTED",
+               txs[i].actual_start,
+               txs[i].actual_end,
+               txs[i].wait_ticks);
     }
 
     // stop timer thread cleanly

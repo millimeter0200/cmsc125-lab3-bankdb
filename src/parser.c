@@ -26,12 +26,12 @@ int load_transactions(const char *filename, Transaction txs[], int max)
         Transaction tx;
         tx.num_ops = 0;
 
-        tx.status = TX_RUNNING; 
+        tx.status = TX_RUNNING;
         tx.actual_start = 0;
         tx.actual_end = 0;
         tx.wait_ticks = 0;
 
-        char op[20];
+        char op[32];
 
         // read first operation
         if (sscanf(line, "T%d %d %s",
@@ -51,33 +51,33 @@ int load_transactions(const char *filename, Transaction txs[], int max)
             {
                 o->type = OP_DEPOSIT;
                 sscanf(line, "T%d %d %*s %d %d",
-                    &tx.tx_id, &tx.start_tick,
-                    &o->account_id,
-                    &o->amount_centavos);
+                       &tx.tx_id, &tx.start_tick,
+                       &o->account_id,
+                       &o->amount_centavos);
             }
             else if (strcmp(op, "WITHDRAW") == 0)
             {
                 o->type = OP_WITHDRAW;
                 sscanf(line, "T%d %d %*s %d %d",
-                    &tx.tx_id, &tx.start_tick,
-                    &o->account_id,
-                    &o->amount_centavos);
+                       &tx.tx_id, &tx.start_tick,
+                       &o->account_id,
+                       &o->amount_centavos);
             }
             else if (strcmp(op, "TRANSFER") == 0)
             {
                 o->type = OP_TRANSFER;
                 sscanf(line, "T%d %d %*s %d %d %d",
-                    &tx.tx_id, &tx.start_tick,
-                    &o->account_id,
-                    &o->target_account,
-                    &o->amount_centavos);
+                       &tx.tx_id, &tx.start_tick,
+                       &o->account_id,
+                       &o->target_account,
+                       &o->amount_centavos);
             }
             else if (strcmp(op, "BALANCE") == 0)
             {
                 o->type = OP_BALANCE;
                 sscanf(line, "T%d %d %*s %d",
-                    &tx.tx_id, &tx.start_tick,
-                    &o->account_id);
+                       &tx.tx_id, &tx.start_tick,
+                       &o->account_id);
             }
 
             tx.num_ops++;
@@ -107,7 +107,7 @@ int load_transactions(const char *filename, Transaction txs[], int max)
             }
 
             // read next operation type
-            sscanf(line, "%*s %*d %s", &tx.tx_id, &tx.start_tick, op);
+            sscanf(line, "T%d %d %s", &tx.tx_id, &tx.start_tick, op);
         }
 
         txs[count++] = tx;

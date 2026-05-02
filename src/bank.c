@@ -64,7 +64,8 @@ void deposit(int account_id, int amount_centavos)
     load_account(&buffer_pool);
 
     Account *acc = find_account(account_id);
-    if (!acc) {
+    if (!acc)
+    {
         unload_account(&buffer_pool);
         return;
     }
@@ -76,16 +77,13 @@ void deposit(int account_id, int amount_centavos)
     unload_account(&buffer_pool);
 }
 
-
 int withdraw(int account_id, int amount_centavos)
 {
-    if (amount_centavos < 0)
-        return -1;
-
     load_account(&buffer_pool);
 
     Account *acc = find_account(account_id);
-    if (!acc) {
+    if (!acc)
+    {
         unload_account(&buffer_pool);
         return -1;
     }
@@ -95,7 +93,7 @@ int withdraw(int account_id, int amount_centavos)
     if (acc->balance_centavos < amount_centavos)
     {
         pthread_rwlock_unlock(&acc->lock);
-        unload_account(&buffer_pool);  
+        unload_account(&buffer_pool);
         return -1;
     }
 
@@ -103,29 +101,18 @@ int withdraw(int account_id, int amount_centavos)
 
     pthread_rwlock_unlock(&acc->lock);
     unload_account(&buffer_pool);
-
     return 0;
 }
 
 int transfer(int from, int to, int amount_centavos)
 {
-    if (amount_centavos < 0)
-        return -1;
-
-    if (from == to){
-        load_account(&buffer_pool);
-        unload_account(&buffer_pool);
-        return 0;
-    }
-
-    load_account(&buffer_pool);
     load_account(&buffer_pool);
 
     Account *a = find_account(from);
     Account *b = find_account(to);
 
-    if (!a || !b) {
-        unload_account(&buffer_pool);
+    if (!a || !b)
+    {
         unload_account(&buffer_pool);
         return -1;
     }
@@ -140,10 +127,7 @@ int transfer(int from, int to, int amount_centavos)
     {
         pthread_rwlock_unlock(&second->lock);
         pthread_rwlock_unlock(&first->lock);
-
         unload_account(&buffer_pool);
-        unload_account(&buffer_pool);
-
         return -1;
     }
 
@@ -154,17 +138,16 @@ int transfer(int from, int to, int amount_centavos)
     pthread_rwlock_unlock(&first->lock);
 
     unload_account(&buffer_pool);
-    unload_account(&buffer_pool);
-
     return 0;
-} //if buffer size is 1, transfer requires 2 accounts simultaneously, so it must support at least 2 slots
+}
 
 int get_balance(int account_id)
 {
     load_account(&buffer_pool);
 
     Account *acc = find_account(account_id);
-    if (!acc){
+    if (!acc)
+    {
         unload_account(&buffer_pool);
         return -1;
     }
@@ -174,6 +157,5 @@ int get_balance(int account_id)
     pthread_rwlock_unlock(&acc->lock);
 
     unload_account(&buffer_pool);
-
     return bal;
 }
