@@ -4,12 +4,12 @@
 #include "buffer_pool.h"
 
 static BufferPool buffer_pool;
-
 Bank bank;
 
 int load_accounts(const char *filename)
 {
     init_buffer_pool(&buffer_pool, 5);
+
     FILE *file = fopen(filename, "r");
     if (!file)
     {
@@ -27,15 +27,27 @@ int load_accounts(const char *filename)
         bank.accounts[count].account_id = id;
         bank.accounts[count].balance_centavos = balance;
 
-        pthread_rwlock_init(&bank.accounts[count].lock, NULL);
-
+        //fix: check return value
+        if (pthread_rwlock_init(&bank.accounts[count].lock, NULL) != 0)
+        {
+            perror("rwlock init failed");
+            fclose(file);
+            return -1;
+        }
         count++;
     }
 
     bank.num_accounts = count;
-
     fclose(file);
     return count;
+}
+
+void destroy_bank()
+{
+    for (int i = 0; i < bank.num_accounts; i++)
+    {
+        pthread_rwlock_destroy(&bank.accounts[i].lock);
+    }
 }
 
 void print_accounts()
@@ -117,6 +129,7 @@ int transfer(int from, int to, int amount_centavos)
         return -1;
     }
 
+    //deadlock prevention 
     Account *first = (a->account_id < b->account_id) ? a : b;
     Account *second = (a->account_id < b->account_id) ? b : a;
 
@@ -158,4 +171,9 @@ int get_balance(int account_id)
 
     unload_account(&buffer_pool);
     return bal;
+}
+
+BufferPool* get_buffer_pool()
+{
+    return &buffer_pool;
 }
