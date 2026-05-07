@@ -220,11 +220,6 @@ int main(int argc, char *argv[])
 
         total_wait_time += txs[i].wait_ticks;
 
-        if (txs[i].wait_ticks > 0)
-        {
-            concurrent_execution = 1;
-        }
-
         if (txs[i].actual_start < earliest_start)
         {
             earliest_start = txs[i].actual_start;
@@ -233,6 +228,19 @@ int main(int argc, char *argv[])
         if (txs[i].actual_end > latest_end)
         {
             latest_end = txs[i].actual_end;
+        }
+    }
+
+    // detect overlapping execution windows
+    for (int i = 0; i < n; i++)
+    {
+        for (int j = i + 1; j < n; j++)
+        {
+            if (txs[i].actual_start < txs[j].actual_end &&
+                txs[j].actual_start < txs[i].actual_end)
+            {
+                concurrent_execution = 1;
+            }
         }
     }
 

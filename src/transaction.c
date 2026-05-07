@@ -13,10 +13,6 @@ void *execute_transaction(void *arg)
     // wait for scheduled time
     wait_until_tick(tx->start_tick);
 
-    // introduce stronger, less predictable jitter
-    int jitter = (tx->tx_id * 7) % 5; // spreads threads better
-    usleep(30000 * jitter);           // 0–12 ms
-
     tx->actual_start = get_global_tick();
     tx->wait_ticks = tx->actual_start - tx->start_tick;
     tx->status = TX_RUNNING;
@@ -64,13 +60,13 @@ void *execute_transaction(void *arg)
             break;
 
         case OP_BALANCE:
-            if (verbose_flag)
-            {
-                int bal = get_balance(op->account_id);
-                printf("TX %d: Balance of %d = %d\n",
-                       tx->tx_id, op->account_id, bal);
-            }
+        {
+            int bal = get_balance(op->account_id);
+
+            printf("TX %d: Balance of %d = %d\n",
+                   tx->tx_id, op->account_id, bal);
             break;
+        }
 
         default:
             if (verbose_flag)
@@ -92,8 +88,8 @@ void *execute_transaction(void *arg)
         }
 
         // simulate operation time
-        usleep(120000 + (tx->tx_id % 3) * 20000);
-        // 120–160ms (less uniform)
+        usleep(300000 + (tx->tx_id % 3) * 100000);
+        // 300–400ms (less uniform)
     }
 
     tx->actual_end = get_global_tick();
