@@ -3,7 +3,7 @@
 #include "bank.h"
 #include "buffer_pool.h"
 
-static BufferPool buffer_pool;
+BufferPool buffer_pool;
 
 Bank bank;
 
