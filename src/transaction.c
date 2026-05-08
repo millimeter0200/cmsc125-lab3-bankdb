@@ -62,9 +62,9 @@ void *execute_transaction(void *arg)
         case OP_BALANCE:
         {
             int bal = get_balance(op->account_id);
-           
-                printf("TX %d: Balance of %d = %d\n",
-                       tx->tx_id, op->account_id, bal);
+
+            printf("TX %d: Balance of %d = %d\n",
+                   tx->tx_id, op->account_id, bal);
             break;
         }
 
@@ -88,8 +88,8 @@ void *execute_transaction(void *arg)
         }
 
         // simulate operation time
-        usleep(120000 + (tx->tx_id % 3) * 20000);
-        // 120–160ms (less uniform)
+        usleep(300000 + (tx->tx_id % 3) * 100000);
+        // 300–400ms (less uniform)
     }
 
     tx->actual_end = get_global_tick();
