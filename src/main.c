@@ -36,6 +36,12 @@ int main(int argc, char *argv[])
         else if (strcmp(argv[i], "--tick-ms") == 0 && i + 1 < argc)
         {
             tick_ms = atoi(argv[++i]);
+
+            if (tick_ms <= 0)
+            {
+                printf("Invalid tick-ms value\n");
+                return 1;
+            }
         }
         else if (strcmp(argv[i], "--verbose") == 0)
         {
@@ -275,6 +281,9 @@ int main(int argc, char *argv[])
     {
         pthread_rwlock_destroy(&bank.accounts[i].lock);
     }
+
+    destroy_buffer_pool();
+    pthread_mutex_destroy(&bank.bank_lock);
 
     return 0;
 }
