@@ -1,7 +1,7 @@
 CC = gcc
 
-CFLAGS = -Wall -Wextra -Wno-deprecated-declarations -std=c99 -O2 -pthread -Iinclude
-DEBUG_FLAGS = -Wall -Wextra -std=c99 -g -fsanitize=thread -pthread -Iinclude
+CFLAGS = -Wall -Wextra -Wno-deprecated-declarations -std=gnu99 -O2 -pthread -Iinclude
+DEBUG_FLAGS = -Wall -Wextra -std=gnu99 -g -fsanitize=thread -pthread -Iinclude
 
 SRC = src/main.c src/parser.c src/bank.c src/timer.c src/transaction.c src/buffer_pool.c
 OUT = bankdb

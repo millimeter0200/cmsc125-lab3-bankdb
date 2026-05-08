@@ -33,31 +33,34 @@ int main(int argc, char *argv[])
         {
             trace_file = argv[++i];
         }
+
         else if (strcmp(argv[i], "--tick-ms") == 0 && i + 1 < argc)
         {
-            tick_ms = atoi(argv[++i]);
+            char *endptr;
+            tick_ms = (int)strtol(argv[++i], &endptr, 10);
 
-            if (tick_ms <= 0)
+            if (*endptr != '\0' || tick_ms <= 0)
             {
-                printf("Invalid tick-ms value\n");
+                fprintf(stderr, "Invalid value for --tick-ms\n");
                 return 1;
             }
         }
+
         else if (strcmp(argv[i], "--verbose") == 0)
         {
             verbose_flag = 1;
         }
         else
         {
-            printf("Unknown argument: %s\n", argv[i]);
+            fprintf(stderr, "Unknown argument: %s\n", argv[i]);
             return 1;
         }
     }
 
     if (!accounts_file || !trace_file)
     {
-        printf("Usage: %s --accounts file --trace file [--tick-ms N] [--verbose]\n",
-               argv[0]);
+        fprintf(stderr, "Usage: %s --accounts file --trace file [--tick-ms N] [--verbose]\n",
+                argv[0]);
         return 1;
     }
 
@@ -83,15 +86,15 @@ int main(int argc, char *argv[])
 
     if (n == 0)
     {
-        printf("Loaded 0 transactions\n");
+        fprintf(stderr, "Loaded 0 transactions\n");
         return 0;
     }
 
-    printf("Loaded %d transactions\n", n);
+    fprintf(stderr, "Loaded %d transactions\n", n);
 
     if (verbose_flag)
     {
-        printf("\nExecution Log:\n");
+        fprintf(stderr, "\nExecution Log:\n");
     }
 
     // compute expected balance changes
@@ -146,21 +149,21 @@ int main(int argc, char *argv[])
     // stop timer
     stop_timer();
 
-    printf("\nTransaction Summary:\n");
+    fprintf(stderr, "\nTransaction Summary:\n");
 
     for (int i = 0; i < n; i++)
     {
-        printf("TX %d -> %s (start=%d, end=%d, wait=%d)\n",
-               txs[i].tx_id,
-               txs[i].status == TX_COMMITTED
-                   ? "COMMITTED"
-                   : "ABORTED",
-               txs[i].actual_start,
-               txs[i].actual_end,
-               txs[i].wait_ticks);
+        fprintf(stderr, "TX %d -> %s (start=%d, end=%d, wait=%d)\n",
+                txs[i].tx_id,
+                txs[i].status == TX_COMMITTED
+                    ? "COMMITTED"
+                    : "ABORTED",
+                txs[i].actual_start,
+                txs[i].actual_end,
+                txs[i].wait_ticks);
     }
 
-    printf("\nFinal Account State:\n");
+    fprintf(stderr, "\nFinal Account State:\n");
     print_accounts();
 
     // compute final balance
@@ -172,7 +175,7 @@ int main(int argc, char *argv[])
     }
 
     // consistency validation
-    printf("\nBalance Consistency Check:\n");
+    fprintf(stderr, "\nBalance Consistency Check:\n");
 
     printf("Initial Total:  %d\n", initial_total_balance);
     printf("Deposits:       +%d\n", total_deposits);
