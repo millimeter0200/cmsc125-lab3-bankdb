@@ -19,13 +19,14 @@ typedef struct
 {
     Account accounts[MAX_ACCOUNTS];
     int num_accounts;
-    pthread_mutex_t bank_lock;
+    
 } Bank;
 
 extern Bank bank;
 
 int load_accounts(const char *filename);
 void print_accounts();
+void destroy_bank();
 
 // banking operations
 void deposit(int account_id, int amount_centavos);

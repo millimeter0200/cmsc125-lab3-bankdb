@@ -8,11 +8,11 @@
 #include "timer.h"
 #include "transaction.h"
 #include "buffer_pool.h"
+#include "config.h"
 
 #define MAX_TRANSACTIONS 100
 
 extern Bank bank;
-extern BufferPool buffer_pool;
 
 int verbose_flag = 0;
 int initial_total_balance = 0;
@@ -196,16 +196,16 @@ int main(int argc, char *argv[])
     printf("\nBuffer Pool Report:\n");
 
     printf("Current Usage: %d\n",
-           buffer_pool.current_usage);
+           get_buffer_pool()->current_usage);
 
     printf("Peak Usage:    %d\n",
-           buffer_pool.peak_usage);
+           get_buffer_pool()->peak_usage);
 
     printf("Total Loads:   %d\n",
-           buffer_pool.total_loads);
+           get_buffer_pool()->total_loads);
 
     printf("Total Evicts:  %d\n",
-           buffer_pool.total_evictions);
+           get_buffer_pool()->total_evictions);
 
     // performance statistics
     int committed_count = 0;
@@ -279,14 +279,9 @@ int main(int argc, char *argv[])
 
     printf("Throughput:      %.2f tx/tick\n", throughput);
 
-    // cleanup locks
-    for (int i = 0; i < bank.num_accounts; i++)
-    {
-        pthread_rwlock_destroy(&bank.accounts[i].lock);
-    }
+    destroy_bank();
 
-    destroy_buffer_pool();
-    pthread_mutex_destroy(&bank.bank_lock);
+    destroy_buffer_pool(get_buffer_pool());
 
     return 0;
 }

@@ -50,7 +50,7 @@ This project implements a **concurrent banking system** that processes multiple 
   - Creates and joins transaction threads
   - Handles CLI arguments and program flow
   - Validates CLI input using `strtol()` for safer numeric parsing
-  - Supports runtime flags such as `--verbose` and `--deadlock=preventation`
+  - Supports runtime flags such as `--verbose` and `--deadlock=prevention`
 
 ---
 
