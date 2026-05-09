@@ -97,32 +97,6 @@ int main(int argc, char *argv[])
         fprintf(stderr, "\nExecution Log:\n");
     }
 
-    // compute expected balance changes
-    int total_deposits = 0;
-    int total_withdrawals = 0;
-
-    for (int i = 0; i < n; i++)
-    {
-        for (int j = 0; j < txs[i].num_ops; j++)
-        {
-            Operation *op = &txs[i].ops[j];
-
-            if (op->type == OP_DEPOSIT)
-            {
-                total_deposits += op->amount_centavos;
-            }
-            else if (op->type == OP_WITHDRAW)
-            {
-                total_withdrawals += op->amount_centavos;
-            }
-        }
-    }
-
-    int expected_final_balance =
-        initial_total_balance +
-        total_deposits -
-        total_withdrawals;
-
     // start timer thread
     start_timer(tick_ms);
 
@@ -165,6 +139,35 @@ int main(int argc, char *argv[])
 
     fprintf(stderr, "\nFinal Account State:\n");
     print_accounts();
+
+    // compute expected balance changes from committed transactions only
+    int total_deposits = 0;
+    int total_withdrawals = 0;
+
+    for (int i = 0; i < n; i++)
+    {
+        if (txs[i].status == TX_COMMITTED)
+        {
+            for (int j = 0; j < txs[i].num_ops; j++)
+            {
+                Operation *op = &txs[i].ops[j];
+
+                if (op->type == OP_DEPOSIT)
+                {
+                    total_deposits += op->amount_centavos;
+                }
+                else if (op->type == OP_WITHDRAW)
+                {
+                    total_withdrawals += op->amount_centavos;
+                }
+            }
+        }
+    }
+
+    int expected_final_balance =
+        initial_total_balance +
+        total_deposits -
+        total_withdrawals;
 
     // compute final balance
     int final_total_balance = 0;
