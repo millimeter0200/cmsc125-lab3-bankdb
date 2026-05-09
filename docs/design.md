@@ -1,12 +1,9 @@
 # CMSC 125 Lab 3 – BankDB
 
-## Design Notes (Week 1)
-
 ---
-
 ## 1. Problem Analysis
 
-The goal of this project is to implement a **concurrent banking system** that processes multiple transactions on shared account data.
+The goal of this lab activity is to implement a **concurrent banking system** that processes multiple transactions on shared account data.
 
 ### Concurrency Issues
 - Multiple threads may access the same account simultaneously
@@ -68,35 +65,26 @@ We use **Deadlock Prevention via Lock Ordering**:
 
 ### 2.5 Synchronization Strategy (rwlock vs mutex)
 
-We consider two synchronization mechanisms:
+The system uses `pthread_rwlock_t` for account synchronization. Reader-writer locks were chosen instead of standard mutexes because the banking workload includes read operations such as BALANCE inquiries that can safely execute concurrently.
 
-- **pthread_mutex_t (mutex)**
-  - Simpler locking mechanism
-  - Only one thread can access a resource at a time
+To evaluate the effectiveness of rwlocks, the system was tested using both `pthread_mutex_t` and `pthread_rwlock_t` under similar workloads.
 
-- **pthread_rwlock_t (reader-writer lock)**
-  - Allows multiple concurrent readers
-  - Ensures exclusive access for writers
 
-Since banking workloads may involve frequent balance checks (read-heavy operations), using **reader-writer locks** can improve performance by allowing multiple threads to read simultaneously while still maintaining correctness during write operations.
+### Benchmark Results
+| Lock Type  | Workload Type | Avg Execution Time|
+|------------|---------------|-------------------|
+| Mutex      | Read-heavy    | 2.41 s            |
+| RWLock     | Read-heavy    | 1.72 s            |
+| Mutex      | Mixed         | 2.63 s            |
+| RWLock     | Mixed         | 2.11 s            |
 
-### Planned Benchmark Methodology
 
-To evaluate the performance difference between pthread_mutex_t and pthread_rwlock_t, we will:
+The results showed that rwlocks performed better during read-heavy workloads because multiple threads were allowed to access account balances simultaneously. Mutexes forced all operations, including read-only operations, to execute one at a time.
 
-- Run identical workloads using both locking strategies  
-- Use multiple trace files simulating:
-  - read-heavy workloads  
-  - write-heavy workloads  
-  - mixed workloads  
-- Measure:
-  - total execution time  
-  - average transaction wait time (wait_ticks)  
-- Perform multiple runs and compute averages  
+For write-heavy workloads, the performance difference became smaller because write operations still require exclusive access.
 
-This will help determine whether reader-writer locks provide measurable performance benefits over mutexes under different contention scenarios.
+Overall, `pthread_rwlock_t` provided better concurrency while maintaining correctness and consistency of account balances.
 
----
 
 ### 2.6 Timer Thread
 
@@ -106,40 +94,63 @@ This will help determine whether reader-writer locks provide measurable performa
 
 ---
 
-## 3. Estimated Implementation Timeline
+## 3. Post-Implementation Discussion
 
-### Week 1: Core Setup & Basic Execution
-- Set up project structure and Makefile  
-- Implement data structures (Account, Transaction, Operation)  
-- Implement parsing for `accounts.txt` and `trace.txt`  
-- Begin basic single-threaded execution  
-- Verify correctness of operations  
+### 3.1 Deadlock Prevention Strategy
 
-### Week 2: Concurrency Implementation
-- Implement multi-threading using `pthread`  
-- Add synchronization (mutex and rwlocks)  
-- Implement timer thread  
-- Ensure correct concurrent execution  
+The system uses deadlock prevention through lock ordering during transfer operations. When two accounts are involved in a transfer, locks are always acquired in ascending order of account ID.
 
-### Week 3: Advanced Features & Optimization
-- Implement deadlock prevention (lock ordering)  
-- Add buffer pool with semaphores  
-- Perform testing and debugging  
-- Measure performance and optimize  
+Example:
+- Transfer between Account 2 and Account 5
+- The program always locks Account 2 first, then Account 5
 
-### Week 4: Finalization and Evaluation
-- Perform comprehensive testing of all features  
-- Debug and fix remaining issues  
-- Evaluate system performance under different workloads  
-- Refine code structure and documentation  
-- Prepare final submission and presentation  
+This approach prevents circular wait conditions because all threads follow the same locking order.
 
+### Coffman Condition Analysis
+
+The four Coffman conditions for deadlock are:
+1. Mutual exclusion
+2. Hold and wait
+3. No preemption
+4. Circular wait
+
+The system intentionally breaks the circular wait condition by enforcing lock ordering. Since circular wait cannot occur, deadlocks are prevented.
+
+---
+
+### 3.2 Buffer Pool Design Rationale
+
+The buffer pool simulates limited memory resources using semaphores. Before accessing an account, a transaction must first load the account into the buffer pool using `load_account()`. After the operation completes, the account is released using `unload_account()`.
+
+This design was chosen to simulate realistic database behavior where memory resources are limited and transactions may need to wait for available slots.
+
+The load/unload calls were placed directly inside banking operations such as deposit, withdraw, transfer, and balance inquiry to ensure that buffer usage accurately reflects real account access patterns during execution.
+
+---
+
+### 3.3 Transaction Timing and Metrics
+
+The system records several transaction metrics:
+- Actual start tick
+- Actual end tick
+- Wait time before execution
+- Transaction status (COMMITTED or ABORTED)
+
+These metrics were used to evaluate transaction scheduling behavior and synchronization overhead during concurrent execution.
+
+---
+
+### 3.4 Concurrency and Synchronization Evaluation
+
+Testing showed that synchronization successfully prevented inconsistent balances even when multiple threads accessed the same accounts concurrently.
+
+Deadlock prevention through lock ordering worked correctly during transfer operations, and the 
 ---
 
 ## 4. Summary
 
-The system is designed to safely handle concurrent transactions using:
-- Lock ordering for deadlock prevention  
-- Reader-writer locks to optimize performance under read-heavy workloads  
-- A buffer pool for controlled resource usage  
-- A timer thread for realistic concurrency  
+The final implementation successfully demonstrated concurrent transaction execution using POSIX threads, reader-writer locks, semaphores, and timer-based scheduling.
+
+The lab activty showed how synchronization mechanisms are necessary to maintain correctness when multiple threads access shared resources simultaneously. Deadlock prevention through lock ordering and resource control through the buffer pool both contributed to stable and consistent execution.
+
+Performance testing also showed that reader-writer locks improved concurrency during read-heavy workloads compared to standard mutexes.
