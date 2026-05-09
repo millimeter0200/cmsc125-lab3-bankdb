@@ -1,4 +1,5 @@
 #include "buffer_pool.h"
+extern BufferPool buffer_pool;
 
 // initialize buffer pool
 void init_buffer_pool(BufferPool *bp, int capacity)
@@ -55,4 +56,11 @@ void unload_account(BufferPool *bp)
     pthread_mutex_unlock(&bp->lock);
 
     sem_post(&bp->empty_slots);
+}
+
+void destroy_buffer_pool()
+{
+    sem_destroy(&buffer_pool.empty_slots);
+    sem_destroy(&buffer_pool.full_slots);
+    pthread_mutex_destroy(&buffer_pool.lock);
 }

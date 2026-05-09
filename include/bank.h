@@ -6,7 +6,7 @@
 
 #define MAX_ACCOUNTS 100
 
-BufferPool* get_buffer_pool();
+BufferPool *get_buffer_pool();
 
 typedef struct
 {
@@ -19,7 +19,7 @@ typedef struct
 {
     Account accounts[MAX_ACCOUNTS];
     int num_accounts;
-    pthread_mutex_t bank_lock; // protects bank metadata
+    pthread_mutex_t bank_lock;
 } Bank;
 
 extern Bank bank;

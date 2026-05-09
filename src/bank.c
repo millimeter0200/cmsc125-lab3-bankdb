@@ -22,12 +22,24 @@ int load_accounts(const char *filename)
 
     bank.num_accounts = 0;
 
+    if (pthread_mutex_init(&bank.bank_lock, NULL) != 0)
+    {
+        perror("pthread_mutex_init failed");
+        fclose(file);
+        return -1;
+    }
+
     while (fscanf(file, "%d %d", &id, &balance) == 2 && count < MAX_ACCOUNTS)
     {
         bank.accounts[count].account_id = id;
         bank.accounts[count].balance_centavos = balance;
 
-        pthread_rwlock_init(&bank.accounts[count].lock, NULL);
+        if (pthread_rwlock_init(&bank.accounts[count].lock, NULL) != 0)
+        {
+            perror("pthread_rwlock_init failed");
+            fclose(file);
+            return -1;
+        }
 
         count++;
     }

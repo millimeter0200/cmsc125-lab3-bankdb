@@ -64,7 +64,10 @@ void *execute_transaction(void *arg)
             int bal = get_balance(op->account_id);
 
             printf("TX %d: Balance of %d = %d\n",
-                   tx->tx_id, op->account_id, bal);
+                   tx->tx_id,
+                   op->account_id,
+                   bal);
+
             break;
         }
 
@@ -88,9 +91,8 @@ void *execute_transaction(void *arg)
         }
 
         // simulate operation time
-        usleep(300000 + (tx->tx_id % 3) * 100000);
-        // 300–400ms (less uniform)
-    }
+        usleep(300000);
+        }
 
     tx->actual_end = get_global_tick();
     tx->status = TX_COMMITTED;
