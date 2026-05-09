@@ -6,6 +6,7 @@
 
 #define MAX_ACCOUNTS 100
 
+// forward declaration of buffer pool for use in bank operations
 BufferPool *get_buffer_pool();
 
 typedef struct
@@ -19,7 +20,7 @@ typedef struct
 {
     Account accounts[MAX_ACCOUNTS];
     int num_accounts;
-    
+
 } Bank;
 
 extern Bank bank;

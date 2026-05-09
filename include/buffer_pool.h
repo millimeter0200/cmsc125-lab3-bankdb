@@ -23,9 +23,9 @@ typedef struct
 
 } BufferPool;
 
-void init_buffer_pool(BufferPool *bp, int capacity);
-void load_account(BufferPool *bp);
-void unload_account(BufferPool *bp);
-void destroy_buffer_pool(BufferPool *bp);
+void init_buffer_pool(BufferPool *bp, int capacity); // initialize buffer pool with given capacity
+void load_account(BufferPool *bp);                   // simulate loading an account into buffer
+void unload_account(BufferPool *bp);                 // simulate releasing an account from buffer
+void destroy_buffer_pool(BufferPool *bp);            // clean up buffer pool resources
 
 #endif

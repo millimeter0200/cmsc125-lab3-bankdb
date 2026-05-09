@@ -3,10 +3,12 @@
 #include "bank.h"
 #include "buffer_pool.h"
 
+// global buffer pool instance
 static BufferPool buffer_pool;
 
 Bank bank;
 
+// load accounts from file, returns number of accounts loaded or -1 on error
 int load_accounts(const char *filename)
 {
     init_buffer_pool(&buffer_pool, 5);
@@ -17,11 +19,12 @@ int load_accounts(const char *filename)
         return -1;
     }
 
-    int id, balance;
-    int count = 0;
+    int id, balance; // temporary variables for reading account data
+    int count = 0;   // track number of accounts loaded
 
     bank.num_accounts = 0;
-   
+
+    // read accounts from file, expecting lines in format: <account_id> <balance_centavos>
     while (fscanf(file, "%d %d", &id, &balance) == 2 && count < MAX_ACCOUNTS)
     {
         bank.accounts[count].account_id = id;
@@ -37,12 +40,14 @@ int load_accounts(const char *filename)
         count++;
     }
 
+    // set the total number of accounts loaded into the bank structure
     bank.num_accounts = count;
 
     fclose(file);
     return count;
 }
 
+// helper function to print current state of all accounts
 void print_accounts()
 {
     printf("Accounts:\n");
@@ -54,6 +59,7 @@ void print_accounts()
     }
 }
 
+// helper function to find account by ID, returns pointer or NULL if not found
 static Account *find_account(int id)
 {
     for (int i = 0; i < bank.num_accounts; i++)
@@ -64,6 +70,7 @@ static Account *find_account(int id)
     return NULL;
 }
 
+// banking operations
 void deposit(int account_id, int amount_centavos)
 {
     load_account(&buffer_pool);
@@ -82,6 +89,7 @@ void deposit(int account_id, int amount_centavos)
     unload_account(&buffer_pool);
 }
 
+// returns 0 on success, -1 on failure (e.g. insufficient funds or account not found)
 int withdraw(int account_id, int amount_centavos)
 {
     load_account(&buffer_pool);
@@ -109,6 +117,7 @@ int withdraw(int account_id, int amount_centavos)
     return 0;
 }
 
+// returns 0 on success, -1 on failure (e.g. insufficient funds or account not found)
 int transfer(int from, int to, int amount_centavos)
 {
     load_account(&buffer_pool);
@@ -146,6 +155,7 @@ int transfer(int from, int to, int amount_centavos)
     return 0;
 }
 
+// returns balance in centavos, or -1 if account not found
 int get_balance(int account_id)
 {
     load_account(&buffer_pool);
@@ -165,6 +175,7 @@ int get_balance(int account_id)
     return bal;
 }
 
+// clean up resources (destroy locks)
 void destroy_bank()
 {
     for (int i = 0; i < bank.num_accounts; i++)
@@ -173,6 +184,7 @@ void destroy_bank()
     }
 }
 
+// provide access to global buffer pool instance
 BufferPool *get_buffer_pool()
 {
     return &buffer_pool;
