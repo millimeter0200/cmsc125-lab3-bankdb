@@ -1,5 +1,9 @@
 # CMSC 125 Lab 3 – BankDB
 
+## Contributors
+- Christel Hope S. Ong
+- Mae Maricar R. Yap
+
 ## Final Implementation & Design Overview
 
 ---
@@ -45,6 +49,8 @@ This project implements a **concurrent banking system** that processes multiple 
   - Initializes system components
   - Creates and joins transaction threads
   - Handles CLI arguments and program flow
+  - Validates CLI input using `strtol()` for safer numeric parsing
+  - Supports runtime flags such as `--verbose` and `--deadlock=preventation`
 
 ---
 
@@ -84,6 +90,22 @@ A dedicated **timer thread** simulates system time:
 - Protects access to `global_tick`
 - Enables efficient waiting (no busy waiting)
 
+## 5.1 Synchronization Benchmark Results
+
+The system was tested using both `pthread_mutex_t` and `pthread_rwlock_t` under different workloads.
+
+### Observed Results
+
+Workload Type   Mutex    RWLock 
+Read-heavy      Slower   Faster 
+Mixed workload  Moderate Slightly Faster 
+Write-heavy     Similar  Similar 
+
+### Conclusion
+
+Reader-writer locks improved concurrency during balance-check-heavy workloads because multiple reader threads could access accounts simultaneously. Under write-heavy workloads, the performance difference was minimal since write operations still require exclusive access.
+
+
 ---
 
 ## 6. Deadlock Prevention
@@ -93,6 +115,14 @@ Deadlocks are avoided using **lock ordering**:
 - Accounts are always locked in ascending order of account ID
 - Prevents circular wait conditions
 - Ensures safe transfer operations
+
+Deadlock requires the four Coffman conditions:
+1. Mutual exclusion
+2. Hold and wait
+3. No preemption
+4. Circular wait
+
+The implementation removes the circular wait condition by forcing all transactions to acquire locks in ascending account ID order. Since threads follow the same lock order consistently, cyclic lock dependencies cannot form.
 
 ---
 
@@ -107,6 +137,10 @@ A **fixed-size buffer pool** limits concurrent access:
 ### Purpose
 - Simulates limited system resources
 - Introduces realistic contention
+
+### Buffer Pool Access Timing
+
+`load_account()` is called before account access and `unload_account()` is called immediately after operations complete. This simulates temporary occupation of limited resources while transactions are actively using account data. Releasing the slot after the operation prevents resource leaks and allows waiting transactions to continue execution.
 
 ---
 
@@ -131,7 +165,13 @@ Each transaction:
 
 ## 9. Testing & Validation
 
-The system was tested using:
+The system was tested using concurrent transaction traces containing:
+
+- simultaneous transfers
+- overlapping withdrawals
+- read-heavy balance checks
+- mixed workloads
+- buffer pool contention scenarios
 
 ```bash
 make test
