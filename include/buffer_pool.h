@@ -26,6 +26,6 @@ typedef struct
 void init_buffer_pool(BufferPool *bp, int capacity);
 void load_account(BufferPool *bp);
 void unload_account(BufferPool *bp);
-void destroy_buffer_pool();
+void destroy_buffer_pool(BufferPool *bp);
 
 #endif

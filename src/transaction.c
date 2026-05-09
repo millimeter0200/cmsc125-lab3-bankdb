@@ -3,8 +3,7 @@
 #include "transaction.h"
 #include "bank.h"
 #include "timer.h"
-
-extern int verbose_flag;
+#include "config.h"
 
 void *execute_transaction(void *arg)
 {
@@ -92,7 +91,7 @@ void *execute_transaction(void *arg)
 
         // simulate operation time
         usleep(300000);
-        }
+            }
 
     tx->actual_end = get_global_tick();
     tx->status = TX_COMMITTED;

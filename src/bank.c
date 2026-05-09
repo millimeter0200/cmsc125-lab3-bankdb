@@ -3,7 +3,7 @@
 #include "bank.h"
 #include "buffer_pool.h"
 
-BufferPool buffer_pool;
+static BufferPool buffer_pool;
 
 Bank bank;
 
@@ -21,14 +21,7 @@ int load_accounts(const char *filename)
     int count = 0;
 
     bank.num_accounts = 0;
-
-    if (pthread_mutex_init(&bank.bank_lock, NULL) != 0)
-    {
-        perror("pthread_mutex_init failed");
-        fclose(file);
-        return -1;
-    }
-
+   
     while (fscanf(file, "%d %d", &id, &balance) == 2 && count < MAX_ACCOUNTS)
     {
         bank.accounts[count].account_id = id;
@@ -170,4 +163,17 @@ int get_balance(int account_id)
 
     unload_account(&buffer_pool);
     return bal;
+}
+
+void destroy_bank()
+{
+    for (int i = 0; i < bank.num_accounts; i++)
+    {
+        pthread_rwlock_destroy(&bank.accounts[i].lock);
+    }
+}
+
+BufferPool *get_buffer_pool()
+{
+    return &buffer_pool;
 }
