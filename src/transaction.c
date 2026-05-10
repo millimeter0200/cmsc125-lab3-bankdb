@@ -5,6 +5,7 @@
 #include "timer.h"
 #include "config.h"
 
+// transaction execution function
 void *execute_transaction(void *arg)
 {
     Transaction *tx = (Transaction *)arg;
@@ -16,6 +17,7 @@ void *execute_transaction(void *arg)
     tx->wait_ticks = tx->actual_start - tx->start_tick;
     tx->status = TX_RUNNING;
 
+    // print start message with timing info
     if (verbose_flag)
     {
         printf("Executing TX %d at tick %d (scheduled=%d, wait=%d)\n",
@@ -25,6 +27,7 @@ void *execute_transaction(void *arg)
                tx->wait_ticks);
     }
 
+    // execute operations sequentially
     for (int i = 0; i < tx->num_ops; i++)
     {
         Operation *op = &tx->ops[i];
@@ -70,6 +73,7 @@ void *execute_transaction(void *arg)
             break;
         }
 
+        // unknown operation type
         default:
             if (verbose_flag)
                 printf("TX %d: Unknown operation\n", tx->tx_id);
@@ -91,11 +95,13 @@ void *execute_transaction(void *arg)
 
         // simulate operation time
         usleep(300000);
-            }
+    }
 
+    // if we reach here, transaction is successful
     tx->actual_end = get_global_tick();
     tx->status = TX_COMMITTED;
 
+    // print commit message with timing info
     if (verbose_flag)
         printf("TX %d committed at tick %d\n",
                tx->tx_id, tx->actual_end);

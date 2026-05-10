@@ -2,6 +2,7 @@
 #include <string.h>
 #include "parser.h"
 
+// load transactions from trace file
 int load_transactions(const char *filename, Transaction txs[], int max)
 {
     FILE *file = fopen(filename, "r");
@@ -23,6 +24,7 @@ int load_transactions(const char *filename, Transaction txs[], int max)
                 break;
         }
 
+        // parse transaction header
         Transaction tx;
         tx.num_ops = 0;
 
@@ -40,6 +42,7 @@ int load_transactions(const char *filename, Transaction txs[], int max)
                    op) != 3)
             continue;
 
+        // read operations for this transaction
         while (1)
         {
             if (tx.num_ops >= MAX_OPS)
@@ -80,6 +83,7 @@ int load_transactions(const char *filename, Transaction txs[], int max)
                        &o->account_id);
             }
 
+            // increment operation count
             tx.num_ops++;
 
             // save position before reading next line
@@ -95,6 +99,7 @@ int load_transactions(const char *filename, Transaction txs[], int max)
                     break;
             }
 
+            // check if next line starts a new transaction
             int next_id;
             if (sscanf(line, "T%d", &next_id) != 1)
                 break;
@@ -110,9 +115,11 @@ int load_transactions(const char *filename, Transaction txs[], int max)
             sscanf(line, "T%d %d %s", &tx.tx_id, &tx.start_tick, op);
         }
 
+        // save transaction to array
         txs[count++] = tx;
     }
 
+    // close file and return count of loaded transactions
     fclose(file);
     return count;
 }

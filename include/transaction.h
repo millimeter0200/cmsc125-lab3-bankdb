@@ -45,6 +45,6 @@ typedef struct
     pthread_t thread;
 } Transaction;
 
-void *execute_transaction(void *arg); //funct delcared here, defined in transaction.c
+void *execute_transaction(void *arg); // funct delcared here, defined in transaction.c
 
 #endif

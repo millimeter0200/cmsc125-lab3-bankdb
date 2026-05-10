@@ -14,6 +14,7 @@
 
 extern Bank bank;
 
+// global flag for verbose logging
 int verbose_flag = 0;
 int initial_total_balance = 0;
 
@@ -27,36 +28,37 @@ int main(int argc, char *argv[])
     {
         if (strcmp(argv[i], "--accounts") == 0 && i + 1 < argc)
         {
-            accounts_file = argv[++i];
+            accounts_file = argv[++i]; // next arg is accounts file
         }
         else if (strcmp(argv[i], "--trace") == 0 && i + 1 < argc)
         {
-            trace_file = argv[++i];
+            trace_file = argv[++i]; // next arg is trace file
         }
 
         else if (strcmp(argv[i], "--tick-ms") == 0 && i + 1 < argc)
         {
             char *endptr;
-            tick_ms = (int)strtol(argv[++i], &endptr, 10);
+            tick_ms = (int)strtol(argv[++i], &endptr, 10); // parse tick duration
 
             if (*endptr != '\0' || tick_ms <= 0)
             {
-                fprintf(stderr, "Invalid value for --tick-ms\n");
+                fprintf(stderr, "Invalid value for --tick-ms\n"); // validate tick duration
                 return 1;
             }
         }
 
         else if (strcmp(argv[i], "--verbose") == 0)
         {
-            verbose_flag = 1;
+            verbose_flag = 1; // enable verbose logging
         }
         else
         {
-            fprintf(stderr, "Unknown argument: %s\n", argv[i]);
+            fprintf(stderr, "Unknown argument: %s\n", argv[i]); // handle unknown arguments
             return 1;
         }
     }
 
+    // validate required arguments
     if (!accounts_file || !trace_file)
     {
         fprintf(stderr, "Usage: %s --accounts file --trace file [--tick-ms N] [--verbose]\n",
@@ -81,17 +83,20 @@ int main(int argc, char *argv[])
                               txs,
                               MAX_TRANSACTIONS);
 
+    // validate transaction loading
     if (n < 0)
         return 1;
 
+    // handle case where no transactions were loaded
     if (n == 0)
     {
         fprintf(stderr, "Loaded 0 transactions\n");
         return 0;
     }
-
+    // print loaded transaction count
     fprintf(stderr, "Loaded %d transactions\n", n);
 
+    // print initial account state
     if (verbose_flag)
     {
         fprintf(stderr, "\nExecution Log:\n");
@@ -123,8 +128,10 @@ int main(int argc, char *argv[])
     // stop timer
     stop_timer();
 
+    // print transaction summary and final account state
     fprintf(stderr, "\nTransaction Summary:\n");
 
+    // print summary of each transaction with timing info
     for (int i = 0; i < n; i++)
     {
         fprintf(stderr, "TX %d -> %s (start=%d, end=%d, wait=%d)\n",
@@ -137,6 +144,7 @@ int main(int argc, char *argv[])
                 txs[i].wait_ticks);
     }
 
+    // print final account state
     fprintf(stderr, "\nFinal Account State:\n");
     print_accounts();
 
@@ -144,6 +152,7 @@ int main(int argc, char *argv[])
     int total_deposits = 0;
     int total_withdrawals = 0;
 
+    // only consider committed transactions for balance validation
     for (int i = 0; i < n; i++)
     {
         if (txs[i].status == TX_COMMITTED)
@@ -154,16 +163,17 @@ int main(int argc, char *argv[])
 
                 if (op->type == OP_DEPOSIT)
                 {
-                    total_deposits += op->amount_centavos;
+                    total_deposits += op->amount_centavos; // track total deposits from committed transactions
                 }
                 else if (op->type == OP_WITHDRAW)
                 {
-                    total_withdrawals += op->amount_centavos;
+                    total_withdrawals += op->amount_centavos; // track total withdrawals from committed transactions
                 }
             }
         }
     }
 
+    // compute expected final balance based on initial balance and net changes from committed transactions
     int expected_final_balance =
         initial_total_balance +
         total_deposits -
@@ -177,7 +187,8 @@ int main(int argc, char *argv[])
         final_total_balance += bank.accounts[i].balance_centavos;
     }
 
-    // consistency validation
+    // compare the actual final balance against the expected balance
+    // computed from successfully committed transactions only
     fprintf(stderr, "\nBalance Consistency Check:\n");
 
     printf("Initial Total:  %d\n", initial_total_balance);
@@ -186,6 +197,8 @@ int main(int argc, char *argv[])
     printf("Expected Total: %d\n", expected_final_balance);
     printf("Final Total:    %d\n", final_total_balance);
 
+    // validate that the final total balance matches the expected total balance based
+    // on the net effect of all successfully committed transactions only
     if (expected_final_balance == final_total_balance)
     {
         printf("CONSISTENT: Balance validation passed\n");
@@ -198,6 +211,7 @@ int main(int argc, char *argv[])
     // buffer pool statistics
     printf("\nBuffer Pool Report:\n");
 
+    // print current usage, peak usage, total loads, and total evictions from the buffer pool
     printf("Current Usage: %d\n",
            get_buffer_pool()->current_usage);
 
@@ -219,6 +233,8 @@ int main(int argc, char *argv[])
     int earliest_start = txs[0].actual_start;
     int latest_end = txs[0].actual_end;
 
+    // analyze transaction timings to compute performance metrics such as
+    // average wait time, total runtime, and throughput
     for (int i = 0; i < n; i++)
     {
         if (txs[i].status == TX_COMMITTED)
@@ -256,18 +272,23 @@ int main(int argc, char *argv[])
         }
     }
 
+    // compute total runtime as the span from the earliest transaction start to the latest transaction end
     int total_runtime = latest_end - earliest_start;
 
+    // compute average wait time across all transactions
     double avg_wait =
         n > 0
             ? (double)total_wait_time / n
             : 0.0;
 
+    // compute throughput as the number of committed transactions divided by total runtime
     double throughput =
         total_runtime > 0
             ? (double)committed_count / total_runtime
             : 0.0;
 
+    // print performance metrics including committed/aborted counts, average wait time,
+    // total runtime, concurrency observation, and throughput
     printf("\nPerformance Report:\n");
 
     printf("Committed TXs:   %d\n", committed_count);
@@ -282,8 +303,9 @@ int main(int argc, char *argv[])
 
     printf("Throughput:      %.2f tx/tick\n", throughput);
 
+    // clean up resources
     destroy_bank();
-
+    // destroy buffer pool resources
     destroy_buffer_pool(get_buffer_pool());
 
     return 0;
